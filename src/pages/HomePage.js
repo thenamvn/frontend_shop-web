@@ -160,7 +160,7 @@ const HomePage = () => {
             >
               <div className="w-12 h-12 mb-3 bg-white rounded-full flex items-center justify-center">
                 <img 
-                  src={`https://via.placeholder.com/40?text=${index + 1}`}
+                  src={`https://placehold.co/40?text=${index + 1}`}
                   alt={category}
                   className="w-8 h-8 object-contain"
                 />

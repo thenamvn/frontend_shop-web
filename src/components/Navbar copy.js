@@ -9,21 +9,16 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { cartCount } = useCart() || { cartCount: 0 }; // Thêm fallback
-  const { currentUser, logout } = useAuth() || {}; // Xóa giá trị mặc định không cần thiết
+  const { currentUser, logout } = useAuth() || { currentUser: null, logout: () => {} }; // Thêm fallback
   const navigate = useNavigate();
   
   const categories = ['Áo', 'Quần', 'Váy', 'Phụ kiện', 'Giày dép', 'Sale'];
   
   const handleLogout = () => {
-    if (logout) {
-      logout();
-      navigate('/');
-      setUserMenuOpen(false);
-    }
+    logout();
+    navigate('/');
+    setUserMenuOpen(false);
   };
-  
-  // Kiểm tra xem người dùng có đăng nhập không
-  const isLoggedIn = !!currentUser; // Chuyển đổi currentUser thành boolean
   
   // Tạo display name an toàn
   const getDisplayName = () => {
@@ -88,7 +83,7 @@ const Navbar = () => {
             )}
           </Link>
           
-          {isLoggedIn ? (
+          {currentUser ? (
             <div className="relative">
               <button 
                 className="flex items-center space-x-1"
