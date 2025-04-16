@@ -52,7 +52,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-gray-700 mt-8 pt-5">
-          <p className="text-gray-400 text-center">© 2023 FashionStore. Tất cả các quyền được bảo lưu.</p>
+          <p className="text-gray-400 text-center">© 2025 FashionStore. Tất cả các quyền được bảo lưu.</p>
         </div>
       </div>
     </footer>
