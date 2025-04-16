@@ -10,11 +10,11 @@ const LoginPage = () => {
   const [countdown, setCountdown] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { sendOTP, verifyOTP, currentUser } = useAuth();
-  
+
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
@@ -22,7 +22,7 @@ const LoginPage = () => {
       navigate(from);
     }
   }, [currentUser, navigate, location]);
-  
+
   // Handle countdown timer for OTP resend
   useEffect(() => {
     if (countdown > 0) {
@@ -30,31 +30,31 @@ const LoginPage = () => {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
-  
+
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(String(email).toLowerCase());
   };
-  
+
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email.trim()) {
       setError('Vui lòng nhập địa chỉ email');
       return;
     }
-    
+
     if (!validateEmail(email)) {
       setError('Email không hợp lệ, vui lòng kiểm tra lại');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const response = await sendOTP(email);
-      
+
       if (response.success) {
         setStep(2);
         setCountdown(60); // Set 60 second countdown for OTP resend
@@ -67,26 +67,26 @@ const LoginPage = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!otp.trim()) {
       setError('Vui lòng nhập mã OTP');
       return;
     }
-    
+
     if (otp.trim().length !== 6) {
       setError('Mã OTP phải có 6 chữ số');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const response = await verifyOTP(email, otp);
-      
+
       if (response.success) {
         // Authentication successful, user will be redirected 
         // from the useEffect that watches currentUser
@@ -99,13 +99,13 @@ const LoginPage = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleResendOTP = async () => {
     if (countdown > 0) return;
-    
+
     try {
       const response = await sendOTP(email);
-      
+
       if (response.success) {
         setCountdown(60);
         setError('');
@@ -116,7 +116,7 @@ const LoginPage = () => {
       setError('Đã xảy ra lỗi, vui lòng thử lại sau');
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
@@ -126,7 +126,7 @@ const LoginPage = () => {
             {step === 1 ? 'Đăng nhập tài khoản' : 'Xác thực OTP'}
           </p>
         </div>
-        
+
         {step === 1 ? (
           <form onSubmit={handleSendOTP} className="space-y-6">
             <div>
@@ -149,11 +149,11 @@ const LoginPage = () => {
                 />
               </div>
             </div>
-            
+
             {error && (
               <div className="text-red-500 text-sm">{error}</div>
             )}
-            
+
             <div>
               <button
                 type="submit"
@@ -181,7 +181,7 @@ const LoginPage = () => {
                 Mã OTP đã được gửi đến email <span className="font-medium">{email}</span>
               </p>
             </div>
-            
+
             <div>
               <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
                 Mã OTP
@@ -203,11 +203,11 @@ const LoginPage = () => {
                 />
               </div>
             </div>
-            
+
             {error && (
               <div className="text-red-500 text-sm">{error}</div>
             )}
-            
+
             <div>
               <button
                 type="submit"
@@ -217,7 +217,7 @@ const LoginPage = () => {
                 {isSubmitting ? 'Đang xử lý...' : 'Đăng nhập'}
               </button>
             </div>
-            
+
             <div className="text-center mt-4">
               <button
                 type="button"
@@ -230,6 +230,11 @@ const LoginPage = () => {
             </div>
           </form>
         )}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Chưa có tài khoản? <a href="/register" className="font-medium text-primary hover:underline">Đăng ký ngay</a>
+          </p>
+        </div>
       </div>
     </div>
   );

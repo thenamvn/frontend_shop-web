@@ -99,7 +99,44 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     setCurrentUser(null);
   };
-
+  // Register new user
+  const register = async (userData) => {
+    setAuthError(null);
+    try {
+      // In a real app, this would register the user with your backend
+      // For this demo, we'll simulate a successful registration
+      console.log('Registering new user:', userData);
+      
+      // Check if email already exists (mock validation)
+      const existingUser = localStorage.getItem('user');
+      if (existingUser && JSON.parse(existingUser).email === userData.email) {
+        setAuthError('Email đã được sử dụng, vui lòng chọn email khác');
+        return { success: false, message: 'Email đã được sử dụng' };
+      }
+      
+      // In a real app, you would store the hashed password in the database
+      // For this demo, we'll create a user object without storing the raw password
+      const newUser = {
+        email: userData.email,
+        name: userData.fullname,
+        phone: userData.mobile,
+        gender: '',
+        birthday: '',
+        isAuthenticated: true,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage - in a real app, this would be handled by the backend
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setCurrentUser(newUser);
+      
+      return { success: true };
+      
+    } catch (error) {
+      setAuthError('Không thể đăng ký tài khoản. Vui lòng thử lại sau.');
+      return { success: false, message: error.message };
+    }
+  };
   const value = {
     currentUser,
     loading,
@@ -107,6 +144,7 @@ export const AuthProvider = ({ children }) => {
     sendOTP,
     verifyOTP,
     updateProfile,
+    register,
     logout
   };
 
