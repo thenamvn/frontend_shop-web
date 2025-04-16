@@ -4,8 +4,13 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
+import LoginPage from './pages/LoginPage';
+import AccountPage from './pages/AccountPage';
+import OrdersPage from './pages/OrdersPage';
+import OrderDetailPage from './pages/OrderDetailPage';
 import Notification from './components/Notification';
 import { CartProvider, useCart } from './contexts/CartContext';
+import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
 
 function AppContent() {
@@ -19,6 +24,10 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/order/:id" element={<OrderDetailPage />} />
         </Routes>
       </main>
       <Footer />
@@ -35,9 +44,11 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <CartProvider>
-        <AppContent />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </AuthProvider>
     </Router>
   );
 }

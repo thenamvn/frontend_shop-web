@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX } from 'react-icons/fi';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { cartCount } = useCart();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   
   const categories = ['Áo', 'Quần', 'Váy', 'Phụ kiện', 'Giày dép', 'Sale'];
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setUserMenuOpen(false);
+  };
   
   return (
     <nav className="bg-primary text-white">
@@ -50,9 +60,55 @@ const Navbar = () => {
               </span>
             )}
           </Link>
-          <Link to="/account">
-            <FiUser className="text-2xl" />
-          </Link>
+          
+          {currentUser ? (
+            <div className="relative">
+              <button 
+                className="flex items-center space-x-1"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+              >
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                  <span className="font-bold text-sm">{currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}</span>
+                </div>
+                <span className="hidden md:inline-block">{currentUser.name || currentUser.email.split('@')[0]}</span>
+              </button>
+              
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-20">
+                  <div className="py-2">
+                    <Link
+                      to="/account"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Tài khoản của tôi
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Đơn hàng của tôi
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        <FiLogOut className="mr-2" />
+                        Đăng xuất
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="flex items-center">
+              <FiUser className="text-2xl md:mr-1" />
+              <span className="hidden md:inline">Đăng nhập</span>
+            </Link>
+          )}
         </div>
       </div>
       

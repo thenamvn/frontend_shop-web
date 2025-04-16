@@ -44,10 +44,10 @@ const Footer = () => {
           
           <div>
             <h3 className="text-lg font-bold mb-4">Liên hệ</h3>
-            <p className="text-gray-400 mb-2">123 Đường Fashion, Quận 1</p>
-            <p className="text-gray-400 mb-2">Tp. Hồ Chí Minh, Việt Nam</p>
-            <p className="text-gray-400 mb-2">Email: info@fashionstore.com</p>
-            <p className="text-gray-400 mb-2">Hotline: 1900 1234 567</p>
+            <p className="text-gray-400 mb-2">123 Đường ????, Cầu Giấy</p>
+            <p className="text-gray-400 mb-2">Tp. Hà Nội, Việt Nam</p>
+            <p className="text-gray-400 mb-2">Email: tuan_bi_gay@gmail.com</p>
+            <p className="text-gray-400 mb-2">Hotline: Số lừa đảo </p>
           </div>
         </div>
         
