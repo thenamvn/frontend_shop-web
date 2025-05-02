@@ -12,6 +12,15 @@ import OrderDetailPage from './pages/OrderDetailPage';
 import Notification from './components/Notification';
 import { CartProvider, useCart } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
+
+// Admin components
+import AdminLayout from './pages/admin/AdminLayout';
+import DashboardPage from './pages/admin/DashboardPage';
+import ProductForm from './pages/admin/ProductForm';
+import ProductList from './pages/admin/ProductList';
+import OrdersList from './pages/admin/OrdersList';
+import OrderDetail from './pages/admin/OrderDetail';
+
 import './App.css';
 
 function AppContent() {
@@ -19,20 +28,45 @@ function AppContent() {
   
   return (
     <div className="App min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/product/:id" element={<ProductPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/order/:id" element={<OrderDetailPage />} />
-        </Routes>
-      </main>
-      <Footer />
+      <Routes>
+        {/* Admin Routes - Using AdminLayout */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="products" element={<ProductList />} />
+          <Route path="products/add" element={<ProductForm />} />
+          <Route path="products/edit/:id" element={<ProductForm />} />
+          <Route path="orders" element={<OrdersList />} />
+          <Route path="orders/:id" element={<OrderDetail />} />
+        </Route>
+        
+        {/* Public Routes */}
+        <Route path="/" element={
+          <>
+            <Navbar />
+            <main className="flex-grow">
+              <HomePage />
+            </main>
+            <Footer />
+          </>
+        } />
+        <Route path="*" element={
+          <>
+            <Navbar />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/product/:id" element={<ProductPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/order/:id" element={<OrderDetailPage />} />
+              </Routes>
+            </main>
+            <Footer />
+          </>
+        } />
+      </Routes>
       <Notification 
         type={notification.type}
         message={notification.message}

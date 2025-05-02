@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-
+import axios from 'axios';
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -13,15 +13,24 @@ export const AuthProvider = ({ children }) => {
   
   // Load user data from localStorage on initial render
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setCurrentUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing user from localStorage', error);
-      }
+    // Kiểm tra xem có JWT trong localStorage không
+    const storedJwt = localStorage.getItem('jwt');
+    const storedRole = localStorage.getItem('role');
+    
+    if (storedJwt && storedRole) {
+      // Nếu có, tạo đối tượng user và cập nhật state
+      const email = localStorage.getItem('email') || 'user@example.com';
+      const user = {
+        email,
+        role: storedRole,
+        jwt: storedJwt
+      };
+      
+      setCurrentUser(user);
+      
+      // Lưu vào format mới để thống nhất
+      localStorage.setItem('user', JSON.stringify(user));
     }
-    setLoading(false);
   }, []);
 
   // Send OTP to email
@@ -97,7 +106,35 @@ export const AuthProvider = ({ children }) => {
   // Logout
   const logout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('role');
+    localStorage.removeItem('email');
     setCurrentUser(null);
+  };
+  const login = async (email, otp) => {
+    try {
+      const response = await axios.post('http://localhost:8080/auth/signing', { email, otp });
+  
+      if (response.data.message === 'Login success') {
+        const user = {
+          email,
+          role: response.data.role,
+          jwt: response.data.jwt,
+        };
+  
+        // Lưu thông tin người dùng vào localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+  
+        // Cập nhật trạng thái người dùng
+        setCurrentUser(user);
+  
+        return { success: true };
+      } else {
+        return { success: false, message: response.data.message || 'Mã OTP không hợp lệ' };
+      }
+    } catch (error) {
+      return { success: false, message: 'Đã xảy ra lỗi, vui lòng thử lại sau' };
+    }
   };
   // Register new user
   const register = async (userData) => {

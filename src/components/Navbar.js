@@ -88,6 +88,7 @@ const Navbar = () => {
             )}
           </Link>
           
+         
           {isLoggedIn ? (
             <div className="relative">
               <button 
@@ -130,14 +131,20 @@ const Navbar = () => {
                 </div>
               )}
             </div>
-          ) : (
-            <Link to="/login" className="flex items-center">
-              <FiUser className="text-2xl md:mr-1" />
-              <span className="hidden md:inline">Đăng nhập</span>
-            </Link>
-          )}
+        
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Link to="/login" className="flex items-center">
+                  <FiUser className="text-xl md:mr-1" />
+                  <span className="hidden md:inline">Đăng nhập</span>
+                </Link>
+                <Link to="/register" className="hidden md:flex items-center px-3 py-1 bg-white text-primary rounded hover:bg-gray-100">
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       
       {/* Mobile search bar */}
       <div className="md:hidden px-4 py-2">
@@ -192,6 +199,7 @@ const Navbar = () => {
       </div>
     </nav>
   );
+  
 };
 
 export default Navbar;
