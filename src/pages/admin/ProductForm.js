@@ -1,235 +1,249 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { FiSave, FiArrowLeft, FiPlus, FiX, FiImage } from 'react-icons/fi';
+import axios from 'axios';
+import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 const ProductForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { admin } = useAdminAuth();
   const isEditMode = !!id;
   const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
-  const [images, setImages] = useState([]);
-  const [imagePreview, setImagePreview] = useState([]);
-  const [variants, setVariants] = useState([{ size: 'M', color: '#000000', stock: 10, price: 0 }]);
+  const [imageUrls, setImageUrls] = useState(['']);
+  const [error, setError] = useState('');
   
   const [product, setProduct] = useState({
-    name: '',
+    title: '',
     description: '',
-    price: '',
-    originalPrice: '',
-    category: '',
-    status: 'active',
-    features: [''],
-    specifications: [{ name: '', value: '' }]
+    mrpPrice: '',
+    sellingPrice: '',
+    quantity: '',
+    color: '',
+    sizes: 'M, L',
+    category: 'men',
+    category2: 'bottom_were',
+    category3: 'men_shirt'
   });
 
-  // Lấy danh sách danh mục
+  // Danh sách danh mục cấp 1
   const categories = [
-    'Áo thun', 'Quần jean', 'Váy', 'Áo khoác', 'Phụ kiện', 'Giày dép', 'Sale'
+    { id: 'men', name: 'Nam' },
+    { id: 'women', name: 'Nữ' },
+    { id: 'kids', name: 'Trẻ em' },
+    { id: 'accessories', name: 'Phụ kiện' }
   ];
+
+  // Danh mục cấp 2 dựa trên danh mục cấp 1
+  const getSubcategories = (category) => {
+    switch (category) {
+      case 'men':
+        return [
+          { id: 'bottom_were', name: 'Quần' },
+          { id: 'top_were', name: 'Áo' },
+          { id: 'footwear', name: 'Giày dép' }
+        ];
+      case 'women':
+        return [
+          { id: 'saree', name: 'Váy dài' },
+          { id: 'top_were', name: 'Áo' },
+          { id: 'bottom_were', name: 'Quần' },
+          { id: 'footwear', name: 'Giày dép' }
+        ];
+      case 'kids':
+        return [
+          { id: 'top_were', name: 'Áo' },
+          { id: 'bottom_were', name: 'Quần' }
+        ];
+      case 'accessories':
+        return [
+          { id: 'watches', name: 'Đồng hồ' },
+          { id: 'bags', name: 'Túi xách' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  // Danh mục cấp 3 dựa trên danh mục cấp 2
+  const getThirdCategories = (category, subcategory) => {
+    if (category === 'men' && subcategory === 'top_were') {
+      return [
+        { id: 'men_shirt', name: 'Áo sơ mi' },
+        { id: 'men_tshirt', name: 'Áo thun' }
+      ];
+    }
+    if (category === 'men' && subcategory === 'bottom_were') {
+      return [
+        { id: 'men_jeans', name: 'Quần jeans' },
+        { id: 'men_trousers', name: 'Quần vải' },
+        { id: 'men_shirt', name: 'Áo sơ mi' }
+      ];
+    }
+    if (category === 'women' && subcategory === 'top_were') {
+      return [
+        { id: 'women_shirt', name: 'Áo sơ mi' },
+        { id: 'women_tshirt', name: 'Áo thun' }
+      ];
+    }
+    return [];
+  };
 
   useEffect(() => {
     if (isEditMode) {
-      // Fetch product data for editing
-      const fetchProductDetails = async () => {
-        try {
-          // Simulate API call with timeout
-          setTimeout(() => {
-            // Mock data for product details
-            const productData = {
-              id: parseInt(id),
-              name: `Sản phẩm ${id}`,
-              description: 'Mô tả chi tiết về sản phẩm. Đây là sản phẩm chất lượng cao, với nhiều tính năng và đặc điểm nổi bật.',
-              price: 250000,
-              originalPrice: 350000,
-              category: 'Áo thun',
-              status: 'active',
-              features: [
-                'Chất liệu cotton 100%',
-                'Form rộng thoải mái',
-                'Thiết kế hiện đại'
-              ],
-              specifications: [
-                { name: 'Chất liệu', value: 'Cotton 100%' },
-                { name: 'Xuất xứ', value: 'Việt Nam' },
-                { name: 'Phù hợp', value: 'Nam & Nữ' }
-              ],
-              variants: [
-                { size: 'M', color: '#000000', stock: 15, price: 250000 },
-                { size: 'L', color: '#ffffff', stock: 10, price: 250000 },
-                { size: 'XL', color: '#3498db', stock: 5, price: 270000 }
-              ],
-              images: [
-                'https://via.placeholder.com/150',
-                'https://via.placeholder.com/150',
-              ]
-            };
-            
-            setProduct({
-              ...productData,
-              price: productData.price.toString(),
-              originalPrice: productData.originalPrice.toString()
-            });
-            
-            setVariants(productData.variants);
-            setImagePreview(productData.images);
-            setLoading(false);
-          }, 800);
-        } catch (error) {
-          console.error('Error fetching product details:', error);
-          setLoading(false);
-        }
-      };
-      
       fetchProductDetails();
     }
   }, [id, isEditMode]);
+
+  const fetchProductDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`http://localhost:8080/api/sellers/products/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${admin?.jwt}`
+        }
+      });
+      
+      const productData = response.data;
+      
+      setProduct({
+        title: productData.title || '',
+        description: productData.description || '',
+        mrpPrice: productData.price || '',
+        sellingPrice: productData.sellingPrice || '',
+        quantity: productData.quantity || '',
+        color: productData.color || '',
+        sizes: productData.sizes || '',
+        category: productData.category?.parentCategory?.parentCategory?.categoryId || 'men',
+        category2: productData.category?.parentCategory?.categoryId || 'bottom_were',
+        category3: productData.category?.categoryId || 'men_shirt'
+      });
+      
+      setImageUrls(productData.images || ['']);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      setError('Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.');
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFeatureChange = (index, value) => {
-    const updatedFeatures = [...product.features];
-    updatedFeatures[index] = value;
-    setProduct(prev => ({ ...prev, features: updatedFeatures }));
+  const handleImageUrlChange = (index, value) => {
+    const updatedUrls = [...imageUrls];
+    updatedUrls[index] = value;
+    setImageUrls(updatedUrls);
   };
 
-  const addFeature = () => {
-    setProduct(prev => ({ ...prev, features: [...prev.features, ''] }));
+  const addImageUrl = () => {
+    setImageUrls([...imageUrls, '']);
   };
 
-  const removeFeature = (index) => {
-    const updatedFeatures = [...product.features];
-    updatedFeatures.splice(index, 1);
-    setProduct(prev => ({ ...prev, features: updatedFeatures }));
+  const removeImageUrl = (index) => {
+    const updatedUrls = [...imageUrls];
+    updatedUrls.splice(index, 1);
+    setImageUrls(updatedUrls);
   };
 
-  const handleSpecificationChange = (index, field, value) => {
-    const updatedSpecs = [...product.specifications];
-    updatedSpecs[index] = { ...updatedSpecs[index], [field]: value };
-    setProduct(prev => ({ ...prev, specifications: updatedSpecs }));
-  };
-
-  const addSpecification = () => {
-    setProduct(prev => ({
-      ...prev,
-      specifications: [...prev.specifications, { name: '', value: '' }]
-    }));
-  };
-
-  const removeSpecification = (index) => {
-    const updatedSpecs = [...product.specifications];
-    updatedSpecs.splice(index, 1);
-    setProduct(prev => ({ ...prev, specifications: updatedSpecs }));
-  };
-
-  const handleImageChange = (e) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setImages([...images, ...filesArray]);
-      
-      // Create previews
-      const newImagePreviews = filesArray.map(file => URL.createObjectURL(file));
-      setImagePreview([...imagePreview, ...newImagePreviews]);
-    }
-  };
-
-  const removeImage = (index) => {
-    const updatedImages = [...images];
-    const updatedPreviews = [...imagePreview];
-    
-    // If it's a new image, revoke the object URL to prevent memory leaks
-    if (index < images.length) {
-      URL.revokeObjectURL(updatedPreviews[index]);
-      updatedImages.splice(index, 1);
+  const validateForm = () => {
+    if (!product.title.trim()) {
+      setError('Vui lòng nhập tên sản phẩm');
+      return false;
     }
     
-    updatedPreviews.splice(index, 1);
-    setImages(updatedImages);
-    setImagePreview(updatedPreviews);
-  };
-
-  const handleVariantChange = (index, field, value) => {
-    const updatedVariants = [...variants];
-    updatedVariants[index] = { ...updatedVariants[index], [field]: value };
-    setVariants(updatedVariants);
-  };
-
-  const addVariant = () => {
-    setVariants([...variants, { size: 'M', color: '#000000', stock: 10, price: 0 }]);
-  };
-
-  const removeVariant = (index) => {
-    const updatedVariants = [...variants];
-    updatedVariants.splice(index, 1);
-    setVariants(updatedVariants);
+    if (!product.description.trim()) {
+      setError('Vui lòng nhập mô tả sản phẩm');
+      return false;
+    }
+    
+    if (!product.mrpPrice || isNaN(product.mrpPrice) || Number(product.mrpPrice) <= 0) {
+      setError('Vui lòng nhập giá gốc hợp lệ');
+      return false;
+    }
+    
+    if (!product.sellingPrice || isNaN(product.sellingPrice) || Number(product.sellingPrice) <= 0) {
+      setError('Vui lòng nhập giá bán hợp lệ');
+      return false;
+    }
+    
+    if (!product.quantity || isNaN(product.quantity) || Number(product.quantity) < 0) {
+      setError('Vui lòng nhập số lượng hợp lệ');
+      return false;
+    }
+    
+    if (!product.color.trim()) {
+      setError('Vui lòng nhập màu sắc sản phẩm');
+      return false;
+    }
+    
+    // Kiểm tra ít nhất có một URL hình ảnh hợp lệ
+    const validImageUrls = imageUrls.filter(url => url.trim() !== '');
+    if (validImageUrls.length === 0) {
+      setError('Vui lòng thêm ít nhất một hình ảnh sản phẩm');
+      return false;
+    }
+    
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setSubmitting(true);
     
     try {
-      // Prepare form data for API
-      const formData = new FormData();
+      // Lọc bỏ các URL hình ảnh trống
+      const validImageUrls = imageUrls.filter(url => url.trim() !== '');
       
-      // Add product basic info
-      formData.append('name', product.name);
-      formData.append('description', product.description);
-      formData.append('price', product.price);
-      formData.append('originalPrice', product.originalPrice || '');
-      formData.append('category', product.category);
-      formData.append('status', product.status);
+      const productData = {
+        title: product.title,
+        description: product.description,
+        mrpPrice: Number(product.mrpPrice),
+        sellingPrice: Number(product.sellingPrice),
+        quantity: Number(product.quantity),
+        color: product.color,
+        images: validImageUrls,
+        category: product.category,
+        category2: product.category2,
+        category3: product.category3,
+        sizes: product.sizes
+      };
       
-      // Add features
-      product.features.forEach((feature, index) => {
-        if (feature.trim()) {
-          formData.append(`features[${index}]`, feature);
-        }
-      });
+      let response;
       
-      // Add specifications
-      product.specifications.forEach((spec, index) => {
-        if (spec.name.trim() && spec.value.trim()) {
-          formData.append(`specifications[${index}][name]`, spec.name);
-          formData.append(`specifications[${index}][value]`, spec.value);
-        }
-      });
+      if (isEditMode) {
+        response = await axios.put(`http://localhost:8080/api/sellers/products/${id}`, productData, {
+          headers: {
+            'Authorization': `Bearer ${admin?.jwt}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } else {
+        response = await axios.post('http://localhost:8080/api/sellers/products', productData, {
+          headers: {
+            'Authorization': `Bearer ${admin?.jwt}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
       
-      // Add variants
-      variants.forEach((variant, index) => {
-        formData.append(`variants[${index}][size]`, variant.size);
-        formData.append(`variants[${index}][color]`, variant.color);
-        formData.append(`variants[${index}][stock]`, variant.stock);
-        formData.append(`variants[${index}][price]`, variant.price);
-      });
-      
-      // Add images
-      images.forEach((image, index) => {
-        formData.append(`images[${index}]`, image);
-      });
-      
-      // In a real app, you would make an API call here
-      console.log('Form submitted with data:', {
-        ...product,
-        price: parseFloat(product.price),
-        originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
-        variants,
-        imageCount: images.length,
-        existingImageCount: imagePreview.length - images.length
-      });
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Redirect to product list on success
-      alert(`Sản phẩm đã được ${isEditMode ? 'cập nhật' : 'thêm'} thành công!`);
-      navigate('/admin/products');
+      if (response.status === 200 || response.status === 201) {
+        alert(`Sản phẩm đã được ${isEditMode ? 'cập nhật' : 'thêm'} thành công!`);
+        navigate('/admin/products');
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Đã xảy ra lỗi khi lưu sản phẩm. Vui lòng thử lại sau.');
+      setError(error.response?.data?.message || 'Đã xảy ra lỗi khi lưu sản phẩm. Vui lòng thử lại sau.');
     } finally {
       setSubmitting(false);
     }
@@ -261,6 +275,12 @@ const ProductForm = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative">
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Thông tin cơ bản</h2>
@@ -272,16 +292,16 @@ const ProductForm = () => {
         <div className="p-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
           {/* Tên sản phẩm */}
           <div className="sm:col-span-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
               Tên sản phẩm <span className="text-red-500">*</span>
             </label>
             <div className="mt-1">
               <input
                 type="text"
-                name="name"
-                id="name"
+                name="title"
+                id="title"
                 required
-                value={product.name}
+                value={product.title}
                 onChange={handleChange}
                 className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
                 placeholder="Nhập tên sản phẩm"
@@ -289,19 +309,42 @@ const ProductForm = () => {
             </div>
           </div>
 
-          {/* Giá sản phẩm */}
+          {/* Giá gốc */}
           <div className="sm:col-span-3">
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="mrpPrice" className="block text-sm font-medium text-gray-700">
+              Giá gốc <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="number"
+                name="mrpPrice"
+                id="mrpPrice"
+                required
+                min="0"
+                value={product.mrpPrice}
+                onChange={handleChange}
+                className="focus:ring-primary focus:border-primary block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                placeholder="0"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 sm:text-sm">VNĐ</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Giá bán */}
+          <div className="sm:col-span-3">
+            <label htmlFor="sellingPrice" className="block text-sm font-medium text-gray-700">
               Giá bán <span className="text-red-500">*</span>
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <input
                 type="number"
-                name="price"
-                id="price"
+                name="sellingPrice"
+                id="sellingPrice"
                 required
                 min="0"
-                value={product.price}
+                value={product.sellingPrice}
                 onChange={handleChange}
                 className="focus:ring-primary focus:border-primary block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
                 placeholder="0"
@@ -312,32 +355,68 @@ const ProductForm = () => {
             </div>
           </div>
 
-          {/* Giá gốc */}
-          <div className="sm:col-span-3">
-            <label htmlFor="originalPrice" className="block text-sm font-medium text-gray-700">
-              Giá gốc
+          {/* Số lượng */}
+          <div className="sm:col-span-2">
+            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+              Số lượng <span className="text-red-500">*</span>
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
+            <div className="mt-1">
               <input
                 type="number"
-                name="originalPrice"
-                id="originalPrice"
+                name="quantity"
+                id="quantity"
+                required
                 min="0"
-                value={product.originalPrice}
+                value={product.quantity}
                 onChange={handleChange}
-                className="focus:ring-primary focus:border-primary block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
                 placeholder="0"
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">VNĐ</span>
-              </div>
             </div>
           </div>
 
-          {/* Danh mục */}
-          <div className="sm:col-span-3">
+          {/* Màu sắc */}
+          <div className="sm:col-span-2">
+            <label htmlFor="color" className="block text-sm font-medium text-gray-700">
+              Màu sắc <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                name="color"
+                id="color"
+                required
+                value={product.color}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="Đen, Trắng, Đỏ,..."
+              />
+            </div>
+          </div>
+
+          {/* Kích thước */}
+          <div className="sm:col-span-2">
+            <label htmlFor="sizes" className="block text-sm font-medium text-gray-700">
+              Kích thước <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                name="sizes"
+                id="sizes"
+                required
+                value={product.sizes}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="S, M, L, XL"
+              />
+            </div>
+          </div>
+
+          {/* Danh mục cấp 1 */}
+          <div className="sm:col-span-2">
             <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-              Danh mục <span className="text-red-500">*</span>
+              Danh mục cấp 1 <span className="text-red-500">*</span>
             </label>
             <div className="mt-1">
               <select
@@ -348,29 +427,51 @@ const ProductForm = () => {
                 onChange={handleChange}
                 className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
               >
-                <option value="">-- Chọn danh mục --</option>
-                {categories.map((category, index) => (
-                  <option key={index} value={category}>{category}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Trạng thái */}
-          <div className="sm:col-span-3">
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-              Trạng thái
+          {/* Danh mục cấp 2 */}
+          <div className="sm:col-span-2">
+            <label htmlFor="category2" className="block text-sm font-medium text-gray-700">
+              Danh mục cấp 2 <span className="text-red-500">*</span>
             </label>
             <div className="mt-1">
               <select
-                id="status"
-                name="status"
-                value={product.status}
+                id="category2"
+                name="category2"
+                required
+                value={product.category2}
                 onChange={handleChange}
                 className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
               >
-                <option value="active">Đang bán</option>
-                <option value="inactive">Ngừng bán</option>
+                {getSubcategories(product.category).map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Danh mục cấp 3 */}
+          <div className="sm:col-span-2">
+            <label htmlFor="category3" className="block text-sm font-medium text-gray-700">
+              Danh mục cấp 3 <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1">
+              <select
+                id="category3"
+                name="category3"
+                required
+                value={product.category3}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              >
+                {getThirdCategories(product.category, product.category2).map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -395,215 +496,67 @@ const ProductForm = () => {
           </div>
         </div>
 
-        {/* Đặc điểm nổi bật */}
-        <div className="p-6 border-t border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Đặc điểm nổi bật</h2>
-          <p className="mt-1 mb-4 text-sm text-gray-500">
-            Liệt kê các đặc điểm nổi bật của sản phẩm.
-          </p>
-          
-          <div className="space-y-2">
-            {product.features.map((feature, index) => (
-              <div key={index} className="flex items-center">
-                <input
-                  type="text"
-                  value={feature}
-                  onChange={(e) => handleFeatureChange(index, e.target.value)}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                  placeholder={`Đặc điểm ${index + 1}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeFeature(index)}
-                  className="ml-2 p-1 text-red-500 hover:text-red-700"
-                  disabled={product.features.length === 1}
-                >
-                  <FiX size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            type="button"
-            onClick={addFeature}
-            className="mt-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-          >
-            <FiPlus className="mr-2" />
-            Thêm đặc điểm
-          </button>
-        </div>
-
-        {/* Thông số kỹ thuật */}
-        <div className="p-6 border-t border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Thông số kỹ thuật</h2>
-          <p className="mt-1 mb-4 text-sm text-gray-500">
-            Thông tin chi tiết về đặc tính kỹ thuật của sản phẩm.
-          </p>
-          
-          <div className="space-y-2">
-            {product.specifications.map((spec, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={spec.name}
-                  onChange={(e) => handleSpecificationChange(index, 'name', e.target.value)}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Tên thông số"
-                />
-                <input
-                  type="text"
-                  value={spec.value}
-                  onChange={(e) => handleSpecificationChange(index, 'value', e.target.value)}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Giá trị"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeSpecification(index)}
-                  className="p-1 text-red-500 hover:text-red-700"
-                  disabled={product.specifications.length === 1}
-                >
-                  <FiX size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <button
-            type="button"
-            onClick={addSpecification}
-            className="mt-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-          >
-            <FiPlus className="mr-2" />
-            Thêm thông số
-          </button>
-        </div>
-
-        {/* Biến thể sản phẩm */}
-        <div className="p-6 border-t border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Biến thể sản phẩm</h2>
-          <p className="mt-1 mb-4 text-sm text-gray-500">
-            Thêm các biến thể về kích thước, màu sắc và số lượng tồn kho.
-          </p>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích thước</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Màu sắc</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tồn kho</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (nếu khác)</th>
-                  <th scope="col" className="relative px-3 py-3">
-                    <span className="sr-only">Hành động</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {variants.map((variant, index) => (
-                  <tr key={index}>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <select
-                        value={variant.size}
-                        onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
-                        className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                      >
-                        {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <input
-                        type="color"
-                        value={variant.color}
-                        onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
-                        className="w-full h-8 p-0 border-gray-300 rounded-md"
-                      />
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.stock}
-                        onChange={(e) => handleVariantChange(index, 'stock', parseInt(e.target.value))}
-                        className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                      />
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.price || ''}
-                        onChange={(e) => handleVariantChange(index, 'price', e.target.value === '' ? 0 : parseInt(e.target.value))}
-                        className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Giá mặc định"
-                      />
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeVariant(index)}
-                        className="text-red-500 hover:text-red-700"
-                        disabled={variants.length === 1}
-                      >
-                        <FiX size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          <button
-            type="button"
-            onClick={addVariant}
-            className="mt-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-          >
-            <FiPlus className="mr-2" />
-            Thêm biến thể
-          </button>
-        </div>
-
         {/* Hình ảnh sản phẩm */}
         <div className="p-6 border-t border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Hình ảnh sản phẩm</h2>
           <p className="mt-1 mb-4 text-sm text-gray-500">
-            Thêm hình ảnh để hiển thị sản phẩm trên trang web.
+            Thêm URL hình ảnh để hiển thị sản phẩm (ít nhất 1 hình ảnh).
           </p>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-3">
-            {imagePreview.map((src, index) => (
-              <div key={index} className="relative group">
-                <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md bg-gray-200">
-                  <img src={src} alt={`Preview ${index + 1}`} className="object-cover" />
-                </div>
+          <div className="space-y-3">
+            {imageUrls.map((url, index) => (
+              <div key={index} className="flex items-center">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                  placeholder="Nhập URL hình ảnh"
+                />
                 <button
                   type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm opacity-70 group-hover:opacity-100"
+                  onClick={() => removeImageUrl(index)}
+                  className="ml-2 p-1 text-red-500 hover:text-red-700"
+                  disabled={imageUrls.length === 1}
                 >
-                  <FiX className="text-red-600" />
+                  <FiX size={18} />
                 </button>
               </div>
             ))}
-            
-            <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
-              <label className="cursor-pointer flex flex-col items-center justify-center p-4">
-                <FiImage className="h-8 w-8 text-gray-400" />
-                <span className="mt-1 text-xs text-gray-500">Thêm ảnh</span>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
-            </div>
           </div>
+          
+          <button
+            type="button"
+            onClick={addImageUrl}
+            className="mt-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+          >
+            <FiPlus className="mr-2" />
+            Thêm URL hình ảnh
+          </button>
+          
+          {/* Preview hình ảnh */}
+          {imageUrls.some(url => url.trim() !== '') && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Xem trước hình ảnh:</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {imageUrls.map((url, index) => (
+                  url.trim() !== '' && (
+                    <div key={index} className="relative rounded-md overflow-hidden border border-gray-200">
+                      <img 
+                        src={url} 
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://via.placeholder.com/150?text=Image+Error';
+                        }}
+                      />
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Form actions */}
