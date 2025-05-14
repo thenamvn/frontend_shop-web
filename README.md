@@ -1,6 +1,12 @@
 # Shop Web Frontend
 
 A modern e-commerce website frontend built with React, Tailwind CSS, and React Router.
+## Preview:
+### Home:
+![image](https://github.com/user-attachments/assets/cd1be82e-a333-4087-813e-8d75e2e7ac27)
+![image](https://github.com/user-attachments/assets/912b702b-2663-4b7e-8575-b1ebbea57b9d)
+### Admin Pane:
+![image](https://github.com/user-attachments/assets/22dbe31a-f1d5-4804-9192-e78b4ed7f5e2)
 
 ## Features
 
