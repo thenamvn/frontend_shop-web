@@ -12,6 +12,7 @@ import OrderDetailPage from './pages/OrderDetailPage';
 import Notification from './components/Notification';
 import { CartProvider, useCart } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { AdminAuthProvider } from './contexts/AdminAuthContext';
 
 // Admin components
 import AdminLayout from './pages/admin/AdminLayout';
@@ -20,7 +21,8 @@ import ProductForm from './pages/admin/ProductForm';
 import ProductList from './pages/admin/ProductList';
 import OrdersList from './pages/admin/OrdersList';
 import OrderDetail from './pages/admin/OrderDetail';
-
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import PrivateAdminRoute from './pages/admin/PrivateAdminRoute';
 import './App.css';
 
 function AppContent() {
@@ -31,12 +33,15 @@ function AppContent() {
       <Routes>
         {/* Admin Routes - Using AdminLayout */}
         <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="products" element={<ProductList />} />
-          <Route path="products/add" element={<ProductForm />} />
-          <Route path="products/edit/:id" element={<ProductForm />} />
-          <Route path="orders" element={<OrdersList />} />
-          <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="login" element={<AdminLoginPage />} />
+          <Route element={<PrivateAdminRoute />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="products" element={<ProductList />} />
+            <Route path="products/add" element={<ProductForm />} />
+            <Route path="products/edit/:id" element={<ProductForm />} />
+            <Route path="orders" element={<OrdersList />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
+          </Route>
         </Route>
         
         {/* Public Routes */}
@@ -81,9 +86,11 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <CartProvider>
-          <AppContent />
-        </CartProvider>
+        <AdminAuthProvider>
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
+        </AdminAuthProvider>
       </AuthProvider>
     </Router>
   );
