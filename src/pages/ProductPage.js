@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiStar, FiHeart, FiShare2, FiMinus, FiPlus, FiTruck } from 'react-icons/fi';
+import axios from 'axios';
 import AddToCartButton from '../components/AddToCartButton';
 import ProductReviews from '../components/ProductReviews';
 import ProductCard from '../components/ProductCard';
@@ -9,6 +10,7 @@ import { useCart } from '../contexts/CartContext';
 const ProductPage = () => {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
+    const [relatedProducts, setRelatedProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [mainImage, setMainImage] = useState('');
     const [quantity, setQuantity] = useState(1);
@@ -17,112 +19,161 @@ const ProductPage = () => {
     const { addToCart } = useCart();
 
     useEffect(() => {
-        // Simulate API call
-        setTimeout(() => {
-            const mockProduct = {
-                id: parseInt(id),
-                name: 'Áo thun unisex form rộng phong cách Hàn Quốc',
-                price: 150000,
-                originalPrice: 250000,
-                discount: 40,
-                rating: 4.8,
-                reviewCount: 120,
-                sold: 1200,
-                description: 'Áo thun unisex form rộng phong cách Hàn Quốc với chất liệu cotton 100%, mềm mại, thoáng mát. Áo có thiết kế đơn giản nhưng không kém phần thời trang, dễ dàng mix đồ với nhiều phong cách khác nhau.',
-                images: [
-                    'https://images.unsplash.com/photo-1576566588028-4147f3842f27?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80',
-                    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80',
-                    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80',
-                    'https://images.unsplash.com/photo-1554568218-0f1715e72254?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80',
-                ],
-                sizes: ['S', 'M', 'L', 'XL'],
+        fetchProductDetails();
+    }, [id]);
+
+    const fetchProductDetails = async () => {
+        setLoading(true);
+        try {
+            // Gọi API để lấy chi tiết sản phẩm
+            const response = await axios.get(`http://localhost:8080/products/${id}`);
+            const productData = response.data;
+            
+            // Set selected size và color mặc định
+            if (productData.sizes) {
+                const sizeArray = productData.sizes.split(',').map(size => size.trim());
+                setSelectedSize(sizeArray[0]);
+            }
+            
+            if (productData.color) {
+                setSelectedColor(productData.color);
+            }
+            
+            // Xử lý dữ liệu sản phẩm
+            const transformedProduct = {
+                id: productData.id,
+                name: productData.title,
+                price: productData.sellingPrice,
+                originalPrice: productData.price > productData.sellingPrice ? productData.price : null,
+                discount: productData.discountPercent || 0,
+                rating: productData.reviews && productData.reviews.length > 0 
+                    ? productData.reviews.reduce((sum, review) => sum + review.rating, 0) / productData.reviews.length 
+                    : 0,
+                reviewCount: productData.reviews ? productData.reviews.length : 0,
+                sold: Math.floor(Math.random() * 1000) + 100, // Giả lập số lượng đã bán
+                description: productData.description || 'Không có mô tả chi tiết.',
+                images: productData.images && productData.images.length > 0 
+                    ? productData.images 
+                    : ['https://via.placeholder.com/600x400?text=No+Image'],
+                sizes: productData.sizes ? productData.sizes.split(',').map(size => size.trim()) : ['M'],
                 colors: [
-                    { name: 'Trắng', value: '#ffffff', border: true },
-                    { name: 'Đen', value: '#000000' },
-                    { name: 'Xám', value: '#888888' },
-                    { name: 'Xanh', value: '#3498db' },
+                    { name: productData.color || 'Mặc định', value: getColorHexCode(productData.color), border: true }
                 ],
                 specs: [
-                    { name: 'Chất liệu', value: 'Cotton 100%' },
-                    { name: 'Kiểu dáng', value: 'Form rộng' },
+                    { name: 'Chất liệu', value: 'Cotton' },
                     { name: 'Xuất xứ', value: 'Việt Nam' },
-                    { name: 'Phù hợp', value: 'Nam & Nữ' },
+                    { name: 'Phù hợp', value: productData.category?.categoryId.includes('men') ? 'Nam' : 'Nữ' },
+                    { name: 'Nhà cung cấp', value: productData.seller?.sellerName || 'Không xác định' }
                 ],
-                stock: 50,
+                stock: productData.quantity || 10,
                 estimatedDelivery: '3-5 ngày',
-                relatedProducts: [
-                    {
-                        id: 2,
-                        name: 'Quần jean nam ống rộng',
-                        price: 450000,
-                        originalPrice: null,
-                        image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-                        rating: 4.5,
-                        sold: 850
-                    },
-                    {
-                        id: 4,
-                        name: 'Áo sơ mi nam tay dài',
-                        price: 280000,
-                        originalPrice: 350000,
-                        image: 'https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-                        rating: 4.6,
-                        sold: 920
-                    },
-                    {
-                        id: 6,
-                        name: 'Áo khoác denim unisex',
-                        price: 550000,
-                        originalPrice: 750000,
-                        image: 'https://images.unsplash.com/photo-1544642899-f0d6e5f6ed6f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-                        rating: 4.8,
-                        sold: 650
-                    },
-                    {
-                        id: 7,
-                        name: 'Quần short khaki nam',
-                        price: 220000,
-                        originalPrice: 280000,
-                        image: 'https://images.unsplash.com/photo-1565084888279-aca607ecce0c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-                        rating: 4.5,
-                        sold: 920
-                    },
-                ],
-                reviews: [
-                    {
-                        username: 'Minh Nguyen',
-                        date: '23/06/2023',
-                        rating: 5,
-                        content: 'Chất lượng sản phẩm tuyệt vời, đúng như mô tả. Vải mềm, mặc rất thoải mái. Size chuẩn, giao hàng nhanh. Sẽ ủng hộ shop dài dài.',
-                        images: [
-                            'https://images.unsplash.com/photo-1520367445093-50dc08a59d9d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-                        ]
-                    },
-                    {
-                        username: 'Linh Tran',
-                        date: '15/05/2023',
-                        rating: 4,
-                        content: 'Áo đẹp, đường may chắc chắn, chất liệu tốt. Trừ 1 sao vì giao hàng hơi chậm.',
-                        images: []
-                    },
-                    {
-                        username: 'Hoang Le',
-                        date: '02/04/2023',
-                        rating: 5,
-                        content: 'Quá ưng ý với sản phẩm này! Form áo đẹp, màu sắc chuẩn như hình, size vừa vặn. Sẽ quay lại mua thêm màu khác.',
-                        images: [
-                            'https://images.unsplash.com/photo-1503342394128-c104d54dba01?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-                            'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-                        ]
-                    },
-                ]
+                reviews: transformReviews(productData.reviews),
+                seller: productData.seller ? {
+                    id: productData.seller.id,
+                    name: productData.seller.sellerName,
+                    businessName: productData.seller.businessDetails?.businessName
+                } : null
             };
-
-            setProduct(mockProduct);
-            setMainImage(mockProduct.images[0]);
+            
+            setProduct(transformedProduct);
+            if (transformedProduct.images && transformedProduct.images.length > 0) {
+                setMainImage(transformedProduct.images[0]);
+            }
+            
+            // Lấy sản phẩm liên quan
+            fetchRelatedProducts(productData.category?.categoryId);
+            
             setLoading(false);
-        }, 800);
-    }, [id]);
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            setLoading(false);
+        }
+    };
+    
+    // Hàm chuyển đổi tên màu thành mã hex - cập nhật thêm màu
+    const getColorHexCode = (colorName) => {
+        if (!colorName) return '#888888';
+        
+        const colorMap = {
+            'Red': '#ff0000',
+            'Green': '#00ff00',
+            'Blue': '#0000ff',
+            'Black': '#000000',
+            'White': '#ffffff',
+            'Gray': '#888888',
+            'Orange': '#ffa500',
+            'Yellow': '#ffff00',
+            'Purple': '#800080',
+            'Pink': '#ffc0cb',
+            'Brown': '#a52a2a',
+            'Teal': '#008080',
+            'Đen': '#000000',
+            'Trắng': '#ffffff',
+            'Đỏ': '#ff0000',
+            'Xanh lá': '#00ff00',
+            'Xanh dương': '#0000ff',
+            'Vàng': '#ffff00',
+            'Cam': '#ffa500',
+            'Tím': '#800080',
+            'Hồng': '#ffc0cb',
+            'Nâu': '#a52a2a',
+            'Xám': '#888888',
+            'Xanh ngọc': '#008080'
+        };
+        
+        return colorMap[colorName] || '#888888';
+    };
+    
+    const fetchRelatedProducts = async (categoryId) => {
+        if (!categoryId) return;
+        
+        try {
+            // Gọi API lấy sản phẩm cùng danh mục
+            const response = await axios.get(`http://localhost:8080/products?category=${categoryId}&size=4`);
+            const data = response.data;
+            
+            // Biến đổi dữ liệu
+            const transformedProducts = data.content
+                .filter(product => product.id !== parseInt(id)) // Loại bỏ sản phẩm hiện tại
+                .slice(0, 4) // Giới hạn tối đa 4 sản phẩm
+                .map(product => ({
+                    id: product.id,
+                    name: product.title,
+                    price: product.sellingPrice,
+                    originalPrice: product.price > product.sellingPrice ? product.price : null,
+                    image: product.images && product.images.length > 0 ? product.images[0] : null,
+                    rating: product.reviews && product.reviews.length > 0 
+                        ? product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length 
+                        : 4.5,
+                    sold: Math.floor(Math.random() * 1000) + 100
+                }));
+            
+            setRelatedProducts(transformedProducts);
+        } catch (error) {
+            console.error('Error fetching related products:', error);
+        }
+    };
+    
+    // Hàm chuyển đổi reviews từ API sang định dạng hiển thị
+    const transformReviews = (apiReviews) => {
+        if (!apiReviews || !Array.isArray(apiReviews)) return [];
+        
+        return apiReviews.map(review => ({
+            username: review.user?.fullName || 'Khách hàng ẩn danh',
+            date: formatDate(review.createdAt),
+            rating: review.rating,
+            content: review.reviewText || 'Không có nội dung đánh giá.',
+            images: review.productImages || []
+        }));
+    };
+    
+    // Hàm format ngày tháng
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        
+        const date = new Date(dateString);
+        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    };
 
     const increaseQuantity = () => {
         if (product && quantity < product.stock) {
@@ -183,7 +234,7 @@ const ProductPage = () => {
                 <ul className="flex space-x-2 text-gray-500">
                     <li><Link to="/" className="hover:text-primary">Trang chủ</Link></li>
                     <li>/</li>
-                    <li><Link to="/category/ao-thun" className="hover:text-primary">Áo thun</Link></li>
+                    <li><Link to="/products" className="hover:text-primary">Sản phẩm</Link></li>
                     <li>/</li>
                     <li className="text-gray-800 font-medium">{product.name}</li>
                 </ul>
@@ -226,7 +277,7 @@ const ProductPage = () => {
                     {/* Product rating */}
                     <div className="flex items-center mb-4">
                         <div className="flex items-center mr-4">
-                            <span className="text-lg font-semibold text-primary mr-1">{product.rating}</span>
+                            <span className="text-lg font-semibold text-primary mr-1">{product.rating.toFixed(1)}</span>
                             <div className="flex">
                                 {[1, 2, 3, 4, 5].map(star => (
                                     <FiStar
@@ -394,9 +445,9 @@ const ProductPage = () => {
                         Đặc điểm nổi bật:
                     </p>
                     <ul className="list-disc pl-5 space-y-1">
-                        <li>Chất liệu cotton 100%, mềm mại, thoáng mát</li>
-                        <li>Form rộng thoải mái, phù hợp mọi vóc dáng</li>
-                        <li>Thiết kế đơn giản, dễ phối đồ</li>
+                        <li>Chất liệu cao cấp, mềm mại, thoáng mát</li>
+                        <li>Form dáng thoải mái, phù hợp mọi vóc dáng</li>
+                        <li>Thiết kế hiện đại, dễ phối đồ</li>
                         <li>Đường may tỉ mỉ, chắc chắn</li>
                         <li>Có nhiều size và màu sắc để lựa chọn</li>
                     </ul>
@@ -416,14 +467,16 @@ const ProductPage = () => {
             <ProductReviews reviews={product.reviews} />
 
             {/* Related products */}
-            <div className="mt-12 border-t pt-8">
-                <h2 className="text-xl font-bold mb-6">Sản phẩm tương tự</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {product.relatedProducts.map(relatedProduct => (
-                        <ProductCard key={relatedProduct.id} product={relatedProduct} />
-                    ))}
+            {relatedProducts.length > 0 && (
+                <div className="mt-12 border-t pt-8">
+                    <h2 className="text-xl font-bold mb-6">Sản phẩm tương tự</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {relatedProducts.map(relatedProduct => (
+                            <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

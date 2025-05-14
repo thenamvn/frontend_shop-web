@@ -3,106 +3,104 @@ import HeroSection from '../components/HeroSection';
 import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
 import { FiGrid, FiList } from 'react-icons/fi';
+import axios from 'axios';
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // grid or list
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [productsPerPage] = useState(8); // Số sản phẩm hiển thị mỗi trang
+  const [filters, setFilters] = useState({});
+  const [sortOption, setSortOption] = useState('');
   
-  // Mock product data - in a real app, you would fetch this from an API
+  // Fetch sản phẩm khi trang hoặc bộ lọc thay đổi
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockProducts = [
-        {
-          id: 1,
-          name: 'Áo thun unisex form rộng',
-          price: 150000,
-          originalPrice: 250000,
-          image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.8,
-          sold: 1200
-        },
-        {
-          id: 2,
-          name: 'Quần jean nam ống rộng',
-          price: 450000,
-          originalPrice: null,
-          image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.5,
-          sold: 850
-        },
-        {
-          id: 3,
-          name: 'Đầm xòe cổ V nữ tính',
-          price: 350000,
-          originalPrice: 500000,
-          image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.9,
-          sold: 1500
-        },
-        {
-          id: 4,
-          name: 'Áo sơ mi nam tay dài',
-          price: 280000,
-          originalPrice: 350000,
-          image: 'https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.6,
-          sold: 920
-        },
-        {
-          id: 5,
-          name: 'Váy len dáng suông',
-          price: 420000,
-          originalPrice: null,
-          image: 'https://images.unsplash.com/photo-1551163943-3f6a855d1153?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.7,
-          sold: 750
-        },
-        {
-          id: 6,
-          name: 'Áo khoác denim unisex',
-          price: 550000,
-          originalPrice: 750000,
-          image: 'https://images.unsplash.com/photo-1544642899-f0d6e5f6ed6f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.8,
-          sold: 650
-        },
-        {
-          id: 7,
-          name: 'Quần short khaki nam',
-          price: 220000,
-          originalPrice: 280000,
-          image: 'https://images.unsplash.com/photo-1565084888279-aca607ecce0c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.5,
-          sold: 920
-        },
-        {
-          id: 8,
-          name: 'Áo thun nữ cổ tròn',
-          price: 180000,
-          originalPrice: null,
-          image: 'https://images.unsplash.com/photo-1503342394128-c104d54dba01?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&q=80',
-          rating: 4.7,
-          sold: 1100
-        }
-      ];
-      
-      setProducts(mockProducts);
-      setLoading(false);
-    }, 800);
-  }, []);
+    fetchProducts(currentPage, filters, sortOption);
+  }, [currentPage, filters, sortOption]);
   
-  const handleFilterChange = (filters, sortOption) => {
-    console.log('Filters:', filters);
-    console.log('Sort option:', sortOption);
-    
-    // Here you would fetch filtered products from API
-    // For now, we'll just simulate with a delay
+  const fetchProducts = async (page = 0, filters = {}, sort = '') => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // Xây dựng query params cho API
+      let apiUrl = `http://localhost:8080/products?pageNumber=${page}&pageSize=${productsPerPage}`;
+      
+      // Logic để thêm các tham số lọc và sắp xếp nếu API hỗ trợ
+      // Ví dụ: &sort=price,asc hoặc &category=men_shirt
+      if (sort) {
+        // Chuyển đổi options từ UI sang định dạng của API
+        let sortParam = '';
+        switch (sort) {
+          case 'price-asc':
+            sortParam = 'sellingPrice,asc';
+            break;
+          case 'price-desc':
+            sortParam = 'sellingPrice,desc';
+            break;
+          case 'name-asc':
+            sortParam = 'title,asc';
+            break;
+          case 'name-desc':
+            sortParam = 'title,desc';
+            break;
+          default:
+            break;
+        }
+        if (sortParam) {
+          apiUrl += `&sort=${sortParam}`;
+        }
+      }
+      
+      // Thêm các tham số lọc khác nếu có
+      if (filters.category && filters.category !== 'all') {
+        apiUrl += `&category=${filters.category}`;
+      }
+      
+      // Gọi API với các tham số đã xây dựng
+      const response = await axios.get(apiUrl);
+      const data = response.data;
+      
+      // Transform the data to match your existing product structure
+      const transformedProducts = data.content.map(product => ({
+        id: product.id,
+        name: product.title,
+        price: product.sellingPrice,
+        originalPrice: product.price > product.sellingPrice ? product.price : null,
+        image: product.images && product.images.length > 0 ? product.images[0] : null,
+        rating: product.reviews && product.reviews.length > 0 
+          ? product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length 
+          : 4.5, // Default rating if no reviews
+        sold: Math.floor(Math.random() * 1000) + 100, // Example for sold count since it's not in API
+        category: product.category ? product.category.categoryId : null
+      }));
+      
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
+      setTotalPages(data.totalPages);
       setLoading(false);
-    }, 500);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setLoading(false);
+    }
+  };
+  
+  const handleFilterChange = (newFilters, newSortOption) => {
+    console.log('Filters:', newFilters);
+    console.log('Sort option:', newSortOption);
+    
+    // Lưu bộ lọc mới và sắp xếp mới
+    setFilters(newFilters);
+    setSortOption(newSortOption);
+    setCurrentPage(0); // Reset về trang đầu tiên sau khi lọc
+    
+    // Không cần gọi fetchProducts ở đây vì useEffect sẽ gọi khi filters hoặc sortOption thay đổi
+  };
+  
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Không cần gọi fetchProducts ở đây vì useEffect sẽ gọi khi currentPage thay đổi
   };
   
   return (
@@ -137,14 +135,42 @@ const HomePage = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className={`${viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' : 'space-y-4'}`}>
-            {products.map(product => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-              />
-            ))}
-          </div>
+          <>
+            <div className={`${viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' : 'space-y-4'}`}>
+              {filteredProducts.map(product => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                />
+              ))}
+            </div>
+            
+            {/* Hiển thị thông báo nếu không có sản phẩm nào */}
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Không tìm thấy sản phẩm nào phù hợp với yêu cầu của bạn</p>
+              </div>
+            )}
+            
+            {/* Pagination */}
+            {totalPages > 0 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex space-x-2">
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePageChange(i)}
+                      className={`px-3 py-1 rounded ${
+                        currentPage === i ? 'bg-primary text-white' : 'bg-gray-200 hover:bg-gray-300'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
       
